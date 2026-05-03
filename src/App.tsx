@@ -15,6 +15,11 @@ import Inbox from "./pages/cozy/Inbox";
 import Profile from "./pages/cozy/Profile";
 import Auth from "./pages/cozy/Auth";
 import Safety from "./pages/cozy/Safety";
+import Admin from "./pages/cozy/Admin";
+import AdminOverview from "./pages/cozy/admin/Overview";
+import AdminProperties from "./pages/cozy/admin/Properties";
+import AdminBookings from "./pages/cozy/admin/Bookings";
+import AdminVerify from "./pages/cozy/admin/Verify";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -38,6 +43,12 @@ const App = () => (
             <Route path="/inbox" element={<Inbox />} />
             <Route path="/profile" element={<Profile />} />
             <Route path="/safety" element={<Safety />} />
+            <Route path="/admin" element={<Admin />}>
+              <Route index element={<AdminOverview />} />
+              <Route path="properties" element={<AdminProperties />} />
+              <Route path="bookings" element={<AdminBookings />} />
+              <Route path="verify" element={<AdminVerify />} />
+            </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

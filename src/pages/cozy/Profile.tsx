@@ -1,7 +1,7 @@
 import AppShell from "@/components/cozy/AppShell";
 import { useApp } from "@/context/AppContext";
 import { Link, useNavigate } from "react-router-dom";
-import { BadgeCheck, ChevronRight, Heart, CalendarDays, ShieldCheck, LogOut, Settings } from "lucide-react";
+import { BadgeCheck, ChevronRight, Heart, CalendarDays, ShieldCheck, LogOut, Settings, LayoutDashboard } from "lucide-react";
 
 export default function Profile() {
   const { user, logout, bookings, favourites } = useApp();
@@ -40,6 +40,7 @@ export default function Profile() {
           <Row to="/bookings" icon={CalendarDays} label="My Bookings" />
           <Row to="/favourites" icon={Heart} label="Saved Hotels" />
           <Row to="/safety" icon={ShieldCheck} label="Verification Status" badge="Verified" />
+          <Row to="/admin" icon={LayoutDashboard} label="BDO Admin Console" badge="Admin" />
           <Row to="#" icon={Settings} label="Settings" />
           <button onClick={() => { logout(); navigate("/auth"); }} className="w-full flex items-center gap-3 p-4 text-danger">
             <LogOut className="h-5 w-5" />
