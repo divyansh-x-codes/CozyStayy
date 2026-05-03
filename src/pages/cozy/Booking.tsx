@@ -15,7 +15,6 @@ export default function Booking() {
   const [phone, setPhone] = useState(user?.phone || "");
   const [email, setEmail] = useState(user?.email || "");
   const [minor, setMinor] = useState(false);
-  const [verified, setVerified] = useState(true);
   const [pay, setPay] = useState<"upi" | "card" | "net">("upi");
   const [idUploaded, setIdUploaded] = useState(false);
   const [faceVerified, setFaceVerified] = useState(false);
