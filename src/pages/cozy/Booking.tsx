@@ -17,9 +17,15 @@ export default function Booking() {
   const [minor, setMinor] = useState(false);
   const [verified, setVerified] = useState(true);
   const [pay, setPay] = useState<"upi" | "card" | "net">("upi");
+  const [idUploaded, setIdUploaded] = useState(false);
+  const [faceVerified, setFaceVerified] = useState(false);
+  const [guardianName, setGuardianName] = useState("");
+  const [guardianRel, setGuardianRel] = useState("Parent");
+  const [guardianIdUploaded, setGuardianIdUploaded] = useState(false);
 
   if (!hotel) return null;
   const taxes = Math.round(hotel.price * 0.18);
+  const original = Math.round(hotel.price * 1.25);
   const total = hotel.price + taxes;
 
   const next = () => setStep((s) => s + 1);
@@ -54,18 +60,42 @@ export default function Booking() {
       <div className="px-5 py-5 pb-32">
         {step === 1 && (
           <div className="space-y-5">
+            {/* Booking Summary */}
+            <div className="card-soft overflow-hidden">
+              <div className="flex gap-3 p-3">
+                <img src={hotel.image} className="h-24 w-24 rounded-2xl object-cover" alt={hotel.name} />
+                <div className="flex-1 min-w-0">
+                  <p className="font-semibold text-sm truncate">{hotel.name}</p>
+                  <p className="text-[11px] text-muted-foreground truncate">{hotel.location}</p>
+                  <div className="mt-2 flex items-center gap-2">
+                    <span className="font-bold text-lg">₹{hotel.price.toLocaleString()}</span>
+                    <span className="text-xs text-muted-foreground line-through">₹{original.toLocaleString()}</span>
+                    <span className="chip bg-safety/10 text-safety">Lowest price</span>
+                  </div>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-2 p-3 pt-0">
+                <ReadOnly label="Check-in" value={search.checkIn} />
+                <ReadOnly label="Check-out" value={search.checkOut} />
+              </div>
+              <button
+                onClick={() => setMinor(!minor)}
+                className="w-full flex items-center justify-between px-4 py-3 border-t border-border"
+              >
+                <div className="text-left">
+                  <p className="text-sm font-semibold">Booking for a minor?</p>
+                  <p className="text-[11px] text-muted-foreground">Guardian verification required</p>
+                </div>
+                <span className={`relative h-6 w-11 rounded-full transition-colors ${minor ? "bg-accent" : "bg-border"}`}>
+                  <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-card transition-all ${minor ? "left-5" : "left-0.5"}`} />
+                </span>
+              </button>
+            </div>
+
             <Section title="Guest Details">
               <Field label="Full Name" value={name} onChange={setName} />
               <Field label="Phone Number" value={phone} onChange={setPhone} />
               <Field label="Email Address" value={email} onChange={setEmail} />
-            </Section>
-            <Section title="Stay Details">
-              <div className="grid grid-cols-2 gap-3">
-                <ReadOnly label="Check-in" value={search.checkIn} />
-                <ReadOnly label="Check-out" value={search.checkOut} />
-                <ReadOnly label="Guests" value={`${search.guests} Guest${search.guests > 1 ? "s" : ""}`} />
-                <ReadOnly label="Rooms" value={`${search.rooms} Room`} />
-              </div>
             </Section>
           </div>
         )}
@@ -75,33 +105,61 @@ export default function Booking() {
             <div className="card-soft p-4 flex items-start gap-3">
               <div className="h-10 w-10 rounded-xl bg-safety/10 grid place-items-center"><BadgeCheck className="h-5 w-5 text-safety" /></div>
               <div className="flex-1">
-                <p className="font-semibold text-sm text-safety">DigiLocker Verified</p>
-                <p className="text-xs text-muted-foreground mt-0.5">Stay safe with government-verified identity check.</p>
+                <p className="font-semibold text-sm text-safety">{minor ? "Guardian + Guest Verification" : "Identity Verification"}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">Government-grade identity check keeps every stay safe.</p>
               </div>
               <ShieldCheck className="h-5 w-5 text-safety" />
             </div>
 
-            <Section title="Guest Verification">
-              <div className="flex items-center gap-3 p-3 rounded-2xl bg-secondary">
-                <div className="h-9 w-9 rounded-full bg-card grid place-items-center"><BadgeCheck className="h-4 w-4" /></div>
-                <div className="flex-1">
-                  <p className="text-sm font-semibold">{verified ? "Verified via DigiLocker" : "Not verified"}</p>
-                  <p className="text-[11px] text-muted-foreground">Aadhaar verified</p>
-                </div>
-                <button onClick={() => setVerified(!verified)} className={`h-5 w-5 rounded-full grid place-items-center ${verified ? "bg-safety text-safety-foreground" : "bg-border"}`}>
-                  {verified && "✓"}
-                </button>
-              </div>
+            <Section title="ID Upload">
+              <button
+                onClick={() => setIdUploaded(true)}
+                className={`w-full p-4 rounded-2xl border-2 border-dashed text-sm font-medium transition-colors ${idUploaded ? "border-safety bg-safety/5 text-safety" : "border-border bg-secondary text-muted-foreground"}`}
+              >
+                {idUploaded ? "✓ Aadhaar / DigiLocker verified" : "Tap to upload ID (simulated)"}
+              </button>
+            </Section>
+            <Section title="Face Verification">
+              <button
+                onClick={() => setFaceVerified(true)}
+                disabled={!idUploaded}
+                className={`w-full p-4 rounded-2xl border-2 border-dashed text-sm font-medium transition-colors disabled:opacity-50 ${faceVerified ? "border-safety bg-safety/5 text-safety" : "border-border bg-secondary text-muted-foreground"}`}
+              >
+                {faceVerified ? "✓ Face matched with ID" : "Tap to start face scan"}
+              </button>
             </Section>
 
-            <Section title="Booking for a minor?">
-              <div className="flex items-center justify-between p-3 rounded-2xl bg-secondary">
-                <p className="text-sm">Add guardian details</p>
-                <button onClick={() => setMinor(!minor)} className={`relative h-6 w-11 rounded-full transition-colors ${minor ? "bg-accent" : "bg-border"}`}>
-                  <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-card transition-all ${minor ? "left-5" : "left-0.5"}`} />
-                </button>
+            {minor && (
+              <>
+                <div className="card-soft bg-accent/10 p-3 text-xs font-medium text-primary">
+                  Minor booking — guardian must complete verification.
+                </div>
+                <Section title="Guardian Details">
+                  <Field label="Guardian Full Name" value={guardianName} onChange={setGuardianName} />
+                  <div className="p-3 rounded-2xl bg-secondary">
+                    <p className="text-[11px] text-muted-foreground mb-2">Relationship</p>
+                    <div className="flex gap-2 flex-wrap">
+                      {["Parent", "Sibling", "Relative", "Legal Guardian"].map((r) => (
+                        <button key={r} onClick={() => setGuardianRel(r)} className={`chip ${guardianRel === r ? "bg-primary text-primary-foreground" : "bg-card border border-border"}`}>{r}</button>
+                      ))}
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setGuardianIdUploaded(true)}
+                    className={`w-full p-4 rounded-2xl border-2 border-dashed text-sm font-medium transition-colors ${guardianIdUploaded ? "border-safety bg-safety/5 text-safety" : "border-border bg-secondary text-muted-foreground"}`}
+                  >
+                    {guardianIdUploaded ? "✓ Guardian ID verified" : "Upload guardian ID"}
+                  </button>
+                </Section>
+              </>
+            )}
+
+            {(faceVerified && (!minor || (guardianName && guardianIdUploaded))) && (
+              <div className="card-soft bg-safety/10 p-4 flex items-center gap-3">
+                <BadgeCheck className="h-5 w-5 text-safety" />
+                <p className="text-sm font-semibold text-safety">{minor ? "Guardian Verified ✓" : "Identity Verified ✓"}</p>
               </div>
-            </Section>
+            )}
           </div>
         )}
 
@@ -135,10 +193,11 @@ export default function Booking() {
         <div className="mx-auto max-w-[480px] bg-card border-t border-border p-4">
           <button
             onClick={step === 3 ? confirm : next}
-            className="w-full h-12 rounded-full bg-primary text-primary-foreground font-semibold flex items-center justify-center gap-2"
+            disabled={step === 2 && (!faceVerified || (minor && (!guardianName || !guardianIdUploaded)))}
+            className="w-full h-12 rounded-full bg-primary text-primary-foreground font-semibold flex items-center justify-center gap-2 disabled:opacity-40"
           >
             {step === 3 && <Lock className="h-4 w-4" />}
-            {step === 1 ? "Continue to Verification" : step === 2 ? "Continue to Payment" : `Pay ₹${total.toLocaleString()} Securely`}
+            {step === 1 ? "Continue to Verify" : step === 2 ? "Continue to Payment" : `Pay ₹${total.toLocaleString()} Securely`}
           </button>
         </div>
       </div>
