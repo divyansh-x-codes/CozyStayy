@@ -223,7 +223,7 @@ export default function Room3DViewer({
             execution-while-out-of-viewport
             // @ts-ignore
             execution-while-not-rendered
-            src={`https://sketchfab.com/models/${sketchfabId}/embed?autostart=1`}
+            src={`https://sketchfab.com/models/${sketchfabId}/embed?autospin=0&preload=1`}
           />
           {!simple && (
             <motion.div 
