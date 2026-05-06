@@ -21,7 +21,7 @@ export default function SOSModal() {
           animate={{ y: 0 }}
           exit={{ y: "100%" }}
           transition={{ type: "spring", damping: 25, stiffness: 200 }}
-          className="w-full max-w-[480px] bg-[#f8fafc] rounded-t-[40px] p-6 pb-12 overflow-hidden"
+          className="w-full max-w-[480px] bg-[#f8fafc] rounded-t-[40px] p-6 pb-10 max-h-[90vh] overflow-y-auto scrollbar-hide"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
@@ -31,13 +31,13 @@ export default function SOSModal() {
             </button>
           </div>
 
-          <div className="text-center space-y-2 mb-10">
+          <div className="text-center space-y-1 mb-8">
             <h2 className="text-3xl font-display font-bold">Need Help?</h2>
             <p className="text-muted-foreground font-medium">We're here for you.</p>
           </div>
 
           {/* Central SOS Button */}
-          <div className="relative flex justify-center mb-16">
+          <div className="relative flex justify-center mb-10 mt-2">
             <motion.div 
               animate={{ scale: [1, 1.2, 1] }}
               transition={{ repeat: Infinity, duration: 2 }}

@@ -1,5 +1,5 @@
 import { Link, useNavigate } from "react-router-dom";
-import { Bell, Menu, MapPin, Calendar, Users, Search, ShieldCheck, Compass, Siren, BadgeCheck, ChevronRight, ShieldHalf, X, Plus, Minus } from "lucide-react";
+import { Bell, Menu, MapPin, Calendar, Users, Search, ShieldCheck, Compass, Siren, BadgeCheck, ChevronRight, ShieldHalf, X, Plus, Minus, Star, Heart } from "lucide-react";
 import AppShell from "@/components/cozy/AppShell";
 import Logo from "@/components/cozy/Logo";
 import HotelCard from "@/components/cozy/HotelCard";
@@ -129,12 +129,55 @@ export default function Home() {
               </Link>
             </div>
             <div className="flex gap-2.5 overflow-x-auto -mx-5 px-5 pb-1.5 scrollbar-none">
-              {hotels.map((h) => <HotelCard key={h.id} hotel={h} compact />)}
+              {hotels.slice(0, 4).map((h) => <HotelCard key={h.id} hotel={h} compact />)}
+            </div>
+          </section>
+
+          {/* Explore More Stays */}
+          <section className="mt-8">
+            <h2 className="font-display font-bold text-base mb-3 px-1">Explore More Stays</h2>
+            <div className="space-y-3">
+              {hotels.slice(4).map((h) => (
+                <Link to={`/hotel/${h.id}`} key={h.id} className="block active:scale-[0.98] transition-transform">
+                  <div className="card-soft overflow-hidden border border-border/40 shadow-sm bg-card flex gap-3 p-3">
+                    <div className="relative h-24 w-28 shrink-0 overflow-hidden rounded-xl">
+                      <img src={h.image} alt={h.name} className="w-full h-full object-cover" />
+                      {h.has360 && (
+                        <div className="absolute top-1 left-1 bg-primary/90 backdrop-blur-sm text-primary-foreground px-1.5 py-0.5 rounded-md text-[8px] font-black uppercase flex items-center gap-0.5 shadow-sm">
+                          <Compass className="h-2 w-2" /> 360°
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0 flex flex-col">
+                      <div className="flex items-start justify-between gap-1">
+                        <h3 className="font-bold text-sm leading-tight line-clamp-1">{h.name}</h3>
+                        <div className="flex items-center gap-0.5 text-[10px] font-bold text-amber-500">
+                          <Star className="h-3 w-3 fill-current" /> {h.rating}
+                        </div>
+                      </div>
+                      <p className="text-[10px] text-muted-foreground flex items-center gap-1 mt-0.5 line-clamp-1">
+                        <MapPin className="h-2.5 w-2.5" /> {h.location.split('·')[0]}
+                      </p>
+                      <div className="mt-2 flex items-center gap-1.5 overflow-hidden">
+                        {h.amenities.slice(0, 2).map(a => (
+                          <span key={a} className="text-[8px] font-bold text-muted-foreground/70 bg-secondary px-1.5 py-0.5 rounded-sm uppercase tracking-wider">{a}</span>
+                        ))}
+                      </div>
+                      <div className="mt-auto flex items-end justify-between">
+                        <div className="flex items-center gap-1 text-[9px] text-safety font-bold">
+                          <ShieldCheck className="h-2.5 w-2.5" /> Verified
+                        </div>
+                        <p className="font-black text-sm text-primary">₹{h.price.toLocaleString()}<span className="text-[10px] font-normal text-muted-foreground">/n</span></p>
+                      </div>
+                    </div>
+                  </div>
+                </Link>
+              ))}
             </div>
           </section>
 
           {/* Why CozyStay */}
-          <section className="mt-5">
+          <section className="mt-8 pb-4">
             <div className="card-soft bg-accent/5 p-3 flex items-center gap-3">
               <div className="h-9 w-9 rounded-full bg-primary grid place-items-center text-accent shrink-0">
                 <ShieldHalf className="h-4.5 w-4.5" />

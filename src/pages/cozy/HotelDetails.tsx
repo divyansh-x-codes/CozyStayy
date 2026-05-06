@@ -3,7 +3,7 @@ import { ChevronLeft, Heart, Share2, Star, ShieldCheck, Compass, Wifi, Coffee, C
 import AppShell from "@/components/cozy/AppShell";
 import { getHotel } from "@/data/hotels";
 import { useApp } from "@/context/AppContext";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Room3DViewer from "@/components/cozy/Room3DViewer";
 
 const amenityIcons: Record<string, any> = {
@@ -17,6 +17,10 @@ export default function HotelDetails() {
   const { favourites, toggleFavourite } = useApp();
   const [imgIdx, setImgIdx] = useState(0);
   const [tab, setTab] = useState<"Overview" | "Rooms" | "Amenities" | "Reviews">("Overview");
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
 
   if (!hotel) return <AppShell><div className="p-8 text-center">Hotel not found</div></AppShell>;
   const fav = favourites.includes(hotel.id);

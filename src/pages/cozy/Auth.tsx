@@ -76,7 +76,7 @@ export default function Auth() {
           
           <div className="space-y-3">
             {mode === "signup" && (
-              <Input label="Full Name" value={name} onChange={setName} placeholder="Aarav Sharma" />
+              <Input label="Full Name" value={name} onChange={setName} placeholder="Abhishek Pradhan" />
             )}
             <Input label="Email" value={email} onChange={setEmail} placeholder="you@email.com" type="email" />
             <Input label="Password" value={password} onChange={setPassword} placeholder="••••••••" type="password" />

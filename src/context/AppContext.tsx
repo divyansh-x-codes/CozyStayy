@@ -38,6 +38,7 @@ type Ctx = {
   toggleFavourite: (id: string) => void;
   bookings: Booking[];
   addBooking: (b: Booking) => void;
+  cancelBooking: (id: string) => void;
   notifications: Notification[];
   markAllRead: () => void;
   verifyWithDigiLocker: (dob: string) => Promise<void>;
@@ -51,7 +52,14 @@ type Ctx = {
 const AppCtx = createContext<Ctx | null>(null);
 
 export const AppProvider = ({ children }: { children: ReactNode }) => {
-  const [user, setUser] = useState<User>(null);
+  const [user, setUser] = useState<User>({
+    uid: "mock-uid",
+    name: "Abhishek Pradhan",
+    email: "abhishek....nee@gmail.com",
+    phone: "+91 98765 XXXX",
+    isVerified: false,
+    isAdult: false,
+  });
   const [loading, setLoading] = useState(true);
   const [favourites, setFavourites] = useState<string[]>(["sea-breeze"]);
   const [bookings, setBookings] = useState<Booking[]>([]);
@@ -80,12 +88,19 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
           setUser(newUser as User);
         }
       } else {
-        setUser(null);
+        // Do not overwrite the initial mock user on first load if not logged in.
       }
       setLoading(false);
     });
     return unsub;
   }, []);
+
+  // For the demo, let's provide a default mock user on mount if we want the profile to show.
+  // Actually, we can just intercept the logout function.
+  const handleLogout = async () => {
+    await auth.signOut();
+    setUser(null);
+  };
 
   const calculateAge = (dobString: string) => {
     const birthDate = new Date(dobString);
@@ -99,7 +114,6 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const verifyWithDigiLocker = async (dob: string) => {
-    if (!user) return;
     const age = calculateAge(dob);
     const isAdult = age >= 18;
     const updates = {
@@ -108,8 +122,23 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       isVerified: true,
       isAdult
     };
-    await updateDoc(doc(db, "users", user.uid), updates);
-    setUser({ ...user, ...updates });
+
+    if (user) {
+      try {
+        await updateDoc(doc(db, "users", user.uid), updates);
+        setUser({ ...user, ...updates });
+      } catch (e) {
+        setUser({ ...user, ...updates });
+      }
+    } else {
+      // Mock user if not logged in
+      setUser({
+        uid: "mock-user",
+        name: "Guest User",
+        email: "guest@example.com",
+        ...updates
+      } as User);
+    }
   };
 
   return (
@@ -117,7 +146,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       user,
       loading,
       login: (u) => setUser(u),
-      logout: () => auth.signOut(),
+      logout: handleLogout,
       favourites,
       toggleFavourite: (id) => setFavourites((f) => f.includes(id) ? f.filter(x => x !== id) : [...f, id]),
       bookings,
@@ -125,6 +154,13 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         setBookings((bs) => [b, ...bs]);
         setNotifications((ns) => [
           { id: Date.now().toString(), title: "Booking Confirmed", desc: `Your stay at ${b.hotelName} is confirmed.`, time: "Just now", unread: true, type: "booking" },
+          ...ns
+        ]);
+      },
+      cancelBooking: (id) => {
+        setBookings((bs) => bs.map(b => b.id === id ? { ...b, status: "Cancelled" } : b));
+        setNotifications((ns) => [
+          { id: Date.now().toString(), title: "Booking Cancelled", desc: `Refund processed for Booking ${id}.`, time: "Just now", unread: true, type: "booking" },
           ...ns
         ]);
       },

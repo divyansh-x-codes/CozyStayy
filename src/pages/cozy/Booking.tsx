@@ -5,6 +5,7 @@ import { getHotel } from "@/data/hotels";
 import { useApp } from "@/context/AppContext";
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import Room3DViewer from "@/components/cozy/Room3DViewer";
 
 export default function Booking() {
   const { id } = useParams();
@@ -35,6 +36,7 @@ export default function Booking() {
 
   const [idUploaded, setIdUploaded] = useState(false);
   const [otpSent, setOtpSent] = useState(false);
+  const [otp, setOtp] = useState("");
 
   const startDigiLocker = () => {
     setDigiLockerStatus("verifying");
@@ -134,7 +136,11 @@ export default function Booking() {
               {step === 1 && (
                 <div className="space-y-6">
                   <div className="relative h-48 -mx-6 -mt-6 mb-6 overflow-hidden rounded-t-[32px]">
-                    <img src={hotel.image} className="w-full h-full object-cover" alt={hotel.name} />
+                    {hotel.has360 ? (
+                      <Room3DViewer imageUrl={hotel.image} sketchfabId={hotel.sketchfabId} hideButton simple />
+                    ) : (
+                      <img src={hotel.image} className="w-full h-full object-cover" alt={hotel.name} />
+                    )}
                     <div className="absolute top-4 right-4 flex gap-2">
                       <button className="h-9 w-9 grid place-items-center rounded-full bg-white/90 backdrop-blur"><Share2 className="h-4 w-4" /></button>
                       <button className="h-9 w-9 grid place-items-center rounded-full bg-white/90 backdrop-blur text-danger"><Heart className="h-4 w-4 fill-danger" /></button>
@@ -388,7 +394,7 @@ export default function Booking() {
                             <button onClick={() => setStep(3)} className="w-full h-14 rounded-full bg-primary text-primary-foreground font-bold shadow-lg">
                               Continue with Guardian
                             </button>
-                            <button onClick={() => navigate("/")} className="w-full h-12 rounded-full border border-border font-bold text-sm">
+                            <button onClick={back} className="w-full h-12 rounded-full border border-border font-bold text-sm">
                               Go Back
                             </button>
                           </div>
@@ -415,35 +421,39 @@ export default function Booking() {
                   </div>
 
                   <div className="space-y-4">
-                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Minor Details</p>
-                    <Input label="MINOR NAME" placeholder="Enter minor full name" value={formData.minorName} onChange={(v) => setFormData({...formData, minorName: v})} />
-                    <div className="grid grid-cols-2 gap-4">
-                      <Input label="DATE OF BIRTH" placeholder="DD / MM / YYYY" value={formData.minorDOB} onChange={(v) => setFormData({...formData, minorDOB: v})} />
-                      <div className="space-y-1.5">
-                        <label className="text-[10px] font-bold text-muted-foreground uppercase ml-1">AGE</label>
-                        <div className="w-full h-[52px] px-4 rounded-2xl bg-[#f8fafc] border border-border/50 flex items-center text-sm font-medium text-muted-foreground/40">--</div>
+                    {!otpSent ? (
+                      <>
+                        <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Guardian Details</p>
+                        <Input label="GUARDIAN NAME" placeholder="Enter guardian full name" value={formData.guardianName} onChange={(v) => setFormData({...formData, guardianName: v})} />
+                        <SelectDropdown label="RELATIONSHIP WITH MINOR" options={["Father", "Mother", "Brother", "Sister", "Uncle", "Aunt", "Legal Guardian"]} value={formData.guardianRel} onChange={(v) => setFormData({...formData, guardianRel: v})} />
+                        <PhoneInput label="GUARDIAN MOBILE NUMBER" value={formData.guardianPhone} onChange={(v) => setFormData({...formData, guardianPhone: v})} />
+
+                        <button onClick={() => setOtpSent(true)} className="w-full h-14 rounded-full bg-primary text-primary-foreground font-bold flex items-center justify-center gap-2 shadow-xl shadow-primary/20 disabled:opacity-50 mt-4">
+                          Send OTP to Guardian <ChevronRight className="h-4 w-4" />
+                        </button>
+                      </>
+                    ) : (
+                      <div className="py-8 text-center space-y-6">
+                        <div className="h-16 w-16 bg-primary/10 text-primary rounded-full mx-auto grid place-items-center">
+                          <Smartphone className="h-8 w-8" />
+                        </div>
+                        <div>
+                          <h3 className="text-xl font-bold">Enter Guardian OTP</h3>
+                          <p className="text-sm text-muted-foreground mt-2">
+                            We've sent a verification code to {formData.guardianPhone || "the guardian's mobile number"}.
+                          </p>
+                        </div>
+                        <OtpInput label="OTP" placeholder="Enter 6-digit OTP" value={otp} onChange={setOtp} />
+                        
+                        <button onClick={next} disabled={otp.length !== 6} className="w-full h-14 rounded-full bg-primary text-primary-foreground font-bold flex items-center justify-center gap-2 shadow-xl disabled:opacity-50 transition-opacity">
+                          Verify & Continue <ChevronRight className="h-4 w-4" />
+                        </button>
+                        <button onClick={() => setOtpSent(false)} className="text-sm font-bold text-muted-foreground">
+                          Back to Details
+                        </button>
                       </div>
-                    </div>
-
-                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider pt-4">Guardian Details</p>
-                    <Input label="GUARDIAN NAME" placeholder="Enter guardian full name" value={formData.guardianName} onChange={(v) => setFormData({...formData, guardianName: v})} />
-                    <Input label="RELATIONSHIP WITH MINOR" placeholder="Select relationship" value={formData.guardianRel} onChange={(v) => setFormData({...formData, guardianRel: v})} />
-                    <Input label="GUARDIAN MOBILE NUMBER" placeholder="+91 Enter mobile number" value={formData.guardianPhone} onChange={(v) => setFormData({...formData, guardianPhone: v})} />
-
-                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider pt-2">Upload Guardian ID</p>
-                    <button 
-                      onClick={() => setOtpSent(true)}
-                      className={`w-full aspect-video rounded-3xl border-2 border-dashed flex flex-col items-center justify-center gap-2 transition-all border-border bg-secondary/50 text-muted-foreground hover:bg-secondary`}
-                    >
-                      <Upload className="h-6 w-6" />
-                      <p className="text-sm font-bold">Tap to upload</p>
-                      <p className="text-[10px] opacity-60">JPG, PNG or PDF (Max 5MB)</p>
-                    </button>
+                    )}
                   </div>
-
-                  <button onClick={next} className="w-full h-14 rounded-full bg-primary text-primary-foreground font-bold flex items-center justify-center gap-2 shadow-xl shadow-primary/20">
-                    Continue <ChevronRight className="h-4 w-4" />
-                  </button>
                 </div>
               )}
 
@@ -530,6 +540,29 @@ function Input({ label, placeholder, value, onChange }: { label: string; placeho
   );
 }
 
+function SelectDropdown({ label, options, value, onChange }: { label: string; options: string[]; value: string; onChange: (v: string) => void }) {
+  return (
+    <div className="space-y-1.5">
+      <label className="text-[10px] font-bold text-muted-foreground tracking-wider uppercase ml-1">{label}</label>
+      <div className="relative">
+        <select 
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          className="w-full h-[52px] px-4 rounded-2xl bg-[#f8fafc] border border-border/50 focus:border-primary/30 focus:ring-4 focus:ring-primary/5 outline-none transition-all text-[15px] font-medium appearance-none text-foreground cursor-pointer"
+        >
+          <option value="" disabled className="text-muted-foreground/40">Select relationship</option>
+          {options.map((opt) => (
+            <option key={opt} value={opt}>{opt}</option>
+          ))}
+        </select>
+        <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-muted-foreground">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function Row({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex justify-between items-center text-sm">
@@ -541,3 +574,46 @@ function Row({ label, value }: { label: string; value: string }) {
 
 function Share2(props: any) { return <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" x2="15.42" y1="13.51" y2="17.49"/><line x1="15.41" x2="8.59" y1="6.51" y2="10.49"/></svg>; }
 function Car(props: any) { return <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9C2.1 11.6 2 11.8 2 12v4c0 .6.4 1 1 1h2"/><circle cx="7" cy="17" r="2"/><path d="M9 17h6"/><circle cx="17" cy="17" r="2"/></svg>; }
+
+function PhoneInput({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
+  const handleInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value.replace(/\D/g, '').slice(0, 10);
+    onChange(val);
+  };
+
+  return (
+    <div className="space-y-1.5">
+      <label className="text-[10px] font-bold text-muted-foreground tracking-wider uppercase ml-1">{label}</label>
+      <div className="relative flex items-center w-full h-[52px] px-4 rounded-2xl bg-[#f8fafc] border border-border/50 focus-within:border-primary/30 focus-within:ring-4 focus-within:ring-primary/5 transition-all">
+        <span className="text-[15px] font-bold text-foreground mr-2">+91</span>
+        <input 
+          type="tel" 
+          placeholder="Enter mobile number"
+          value={value}
+          onChange={handleInput}
+          className="flex-1 bg-transparent outline-none text-[15px] font-medium placeholder:text-muted-foreground/40"
+        />
+      </div>
+    </div>
+  );
+}
+
+function OtpInput({ label, placeholder, value, onChange }: { label: string; placeholder: string; value: string; onChange: (v: string) => void }) {
+  const handleInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value.replace(/\D/g, '').slice(0, 6);
+    onChange(val);
+  };
+
+  return (
+    <div className="space-y-1.5">
+      <label className="text-[10px] font-bold text-muted-foreground tracking-wider uppercase ml-1">{label}</label>
+      <input 
+        type="tel" 
+        placeholder={placeholder}
+        value={value}
+        onChange={handleInput}
+        className="w-full h-[52px] px-4 rounded-2xl bg-[#f8fafc] border border-border/50 focus:border-primary/30 focus:ring-4 focus:ring-primary/5 outline-none transition-all text-[15px] font-medium placeholder:text-muted-foreground/40 tracking-widest text-center"
+      />
+    </div>
+  );
+}

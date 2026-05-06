@@ -1,15 +1,19 @@
 import AppShell from "@/components/cozy/AppShell";
 import { useApp } from "@/context/AppContext";
 import { Link, useNavigate } from "react-router-dom";
+import { useEffect } from "react";
 import { BadgeCheck, ChevronRight, Heart, CalendarDays, ShieldCheck, LogOut, Settings, LayoutDashboard } from "lucide-react";
 
 export default function Profile() {
   const { user, logout, bookings, favourites } = useApp();
   const navigate = useNavigate();
-  if (!user) {
-    navigate("/auth");
-    return null;
-  }
+  useEffect(() => {
+    if (!user) {
+      navigate("/auth");
+    }
+  }, [user, navigate]);
+
+  if (!user) return null;
   return (
     <AppShell>
       <header className="px-5 pt-6 pb-4">

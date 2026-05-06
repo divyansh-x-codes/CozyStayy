@@ -3,7 +3,7 @@ import { hotels } from "@/data/hotels";
 import { Filter, BadgeCheck, ShieldAlert } from "lucide-react";
 
 const seedBookings = [
-  { id: "CS84219021", user: "Aarav Sharma", hotel: hotels[0], date: "29 Apr → 30 Apr", status: "Upcoming", minor: false, location: "Goa" },
+  { id: "CS84219021", user: " Abhishek Pradhan", hotel: hotels[0], date: "29 Apr → 30 Apr", status: "Upcoming", minor: false, location: "Goa" },
   { id: "CS84219022", user: "Riya Verma (15)", hotel: hotels[1], date: "02 May → 04 May", status: "Upcoming", minor: true, location: "Goa" },
   { id: "CS84219023", user: "Karthik Iyer", hotel: hotels[2], date: "12 May → 14 May", status: "Pending", minor: false, location: "Goa" },
   { id: "CS84219024", user: "Meera Joshi", hotel: hotels[3], date: "20 May → 22 May", status: "Completed", minor: false, location: "Manali" },
