@@ -1,7 +1,7 @@
 import { createContext, useContext, useState, ReactNode, useEffect } from "react";
-import { auth, db } from "@/lib/firebase";
-import { onAuthStateChanged, User as FirebaseUser } from "firebase/auth";
-import { doc, getDoc, setDoc, updateDoc } from "firebase/firestore";
+import { db } from "@/lib/firebase";
+import { doc, updateDoc, setDoc, collection, query, where, onSnapshot, serverTimestamp } from "firebase/firestore";
+import { useAuth } from "@/contexts/AuthContext";
 
 export type User = {
   uid: string;
@@ -25,6 +25,11 @@ export type Booking = {
   rooms: number;
   total: number;
   status: "Upcoming" | "Completed" | "Cancelled";
+  guestId?: string;
+  userName?: string;
+  minor?: boolean;
+  location?: string;
+  createdAt?: any;
 };
 
 export type Notification = { id: string; title: string; desc: string; time: string; unread: boolean; type?: "booking" | "safety" | "promo" };
@@ -44,23 +49,27 @@ type Ctx = {
   verifyWithDigiLocker: (dob: string) => Promise<void>;
   search: { location: string; checkIn: string; checkOut: string; guests: number; rooms: number };
   setSearch: (s: Ctx["search"]) => void;
-  sosOpen: boolean;
   openSOS: () => void;
   closeSOS: () => void;
+  resetVerification: () => void;
 };
 
 const AppCtx = createContext<Ctx | null>(null);
 
 export const AppProvider = ({ children }: { children: ReactNode }) => {
-  const [user, setUser] = useState<User>({
-    uid: "mock-uid",
-    name: "Abhishek Pradhan",
-    email: "abhishek....nee@gmail.com",
-    phone: "+91 98765 XXXX",
-    isVerified: false,
-    isAdult: false,
-  });
-  const [loading, setLoading] = useState(true);
+  const { userProfile, loading, logout: authLogout } = useAuth();
+
+  const user: User = userProfile ? {
+    uid: userProfile.uid,
+    name: userProfile.name || "Cozy Traveler",
+    email: userProfile.email || "",
+    isVerified: (userProfile as any).isVerified || false,
+    isAdult: (userProfile as any).isAdult || false,
+    phone: (userProfile as any).phone || "",
+    dob: (userProfile as any).dob || "",
+    age: (userProfile as any).age || undefined,
+  } : null;
+
   const [favourites, setFavourites] = useState<string[]>(["sea-breeze"]);
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [notifications, setNotifications] = useState<Notification[]>([
@@ -70,37 +79,27 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   const [search, setSearch] = useState({ location: "Goa, India", checkIn: "29 Apr 2026", checkOut: "30 Apr 2026", guests: 2, rooms: 1 });
   const [sosOpen, setSosOpen] = useState(false);
 
+  // Realtime Firestore Bookings Sync
   useEffect(() => {
-    const unsub = onAuthStateChanged(auth, async (fbUser) => {
-      if (fbUser) {
-        const userDoc = await getDoc(doc(db, "users", fbUser.uid));
-        if (userDoc.exists()) {
-          setUser(userDoc.data() as User);
-        } else {
-          const newUser = {
-            uid: fbUser.uid,
-            name: fbUser.displayName || "Cozy Traveler",
-            email: fbUser.email || "",
-            isVerified: false,
-            isAdult: false
-          };
-          await setDoc(doc(db, "users", fbUser.uid), newUser);
-          setUser(newUser as User);
-        }
-      } else {
-        // Do not overwrite the initial mock user on first load if not logged in.
-      }
-      setLoading(false);
+    if (!userProfile) {
+      setBookings([]);
+      return;
+    }
+    const q = query(collection(db, "bookings"), where("guestId", "==", userProfile.uid));
+    const unsub = onSnapshot(q, (snap) => {
+      const docs = snap.docs.map(d => ({ id: d.id, ...d.data() })) as Booking[];
+      // Sort by newest first
+      docs.sort((a, b) => {
+        const timeA = a.createdAt?.toMillis?.() || 0;
+        const timeB = b.createdAt?.toMillis?.() || 0;
+        return timeB - timeA;
+      });
+      setBookings(docs);
+    }, (err) => {
+      console.error("Failed to sync bookings", err);
     });
     return unsub;
-  }, []);
-
-  // For the demo, let's provide a default mock user on mount if we want the profile to show.
-  // Actually, we can just intercept the logout function.
-  const handleLogout = async () => {
-    await auth.signOut();
-    setUser(null);
-  };
+  }, [userProfile]);
 
   const calculateAge = (dobString: string) => {
     const birthDate = new Date(dobString);
@@ -116,28 +115,23 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   const verifyWithDigiLocker = async (dob: string) => {
     const age = calculateAge(dob);
     const isAdult = age >= 18;
-    const updates = {
-      dob,
-      age,
-      isVerified: true,
-      isAdult
-    };
-
+    const updates = { dob, age, isVerified: true, isAdult };
     if (user) {
       try {
         await updateDoc(doc(db, "users", user.uid), updates);
-        setUser({ ...user, ...updates });
       } catch (e) {
-        setUser({ ...user, ...updates });
+        console.error("Failed to verify user in DB", e);
       }
-    } else {
-      // Mock user if not logged in
-      setUser({
-        uid: "mock-user",
-        name: "Guest User",
-        email: "guest@example.com",
-        ...updates
-      } as User);
+    }
+  };
+
+  const resetVerification = async () => {
+    if (user) {
+      try {
+        await updateDoc(doc(db, "users", user.uid), { isVerified: false, isAdult: false, age: null, dob: null });
+      } catch (e) {
+        console.error("Failed to reset verification", e);
+      }
     }
   };
 
@@ -145,24 +139,43 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     <AppCtx.Provider value={{
       user,
       loading,
-      login: (u) => setUser(u),
-      logout: handleLogout,
+      login: () => {},
+      logout: authLogout,
       favourites,
       toggleFavourite: (id) => setFavourites((f) => f.includes(id) ? f.filter(x => x !== id) : [...f, id]),
       bookings,
-      addBooking: (b) => {
-        setBookings((bs) => [b, ...bs]);
-        setNotifications((ns) => [
-          { id: Date.now().toString(), title: "Booking Confirmed", desc: `Your stay at ${b.hotelName} is confirmed.`, time: "Just now", unread: true, type: "booking" },
-          ...ns
-        ]);
+      addBooking: async (b) => {
+        if (!userProfile) return;
+        try {
+          // Optimistic UI update (optional, but helps perceived performance)
+          setBookings(prev => [b, ...prev]);
+          
+          await setDoc(doc(db, "bookings", b.id), {
+            ...b,
+            guestId: userProfile.uid,
+            userName: userProfile.name || userProfile.email || "Guest",
+            createdAt: serverTimestamp()
+          });
+          
+          setNotifications((ns) => [
+            { id: Date.now().toString(), title: "Booking Confirmed", desc: `Your stay at ${b.hotelName} is confirmed.`, time: "Just now", unread: true, type: "booking" },
+            ...ns
+          ]);
+        } catch (error) {
+          console.error("Failed to create booking", error);
+        }
       },
-      cancelBooking: (id) => {
-        setBookings((bs) => bs.map(b => b.id === id ? { ...b, status: "Cancelled" } : b));
-        setNotifications((ns) => [
-          { id: Date.now().toString(), title: "Booking Cancelled", desc: `Refund processed for Booking ${id}.`, time: "Just now", unread: true, type: "booking" },
-          ...ns
-        ]);
+      cancelBooking: async (id) => {
+        if (!userProfile) return;
+        try {
+          await updateDoc(doc(db, "bookings", id), { status: "Cancelled" });
+          setNotifications((ns) => [
+            { id: Date.now().toString(), title: "Booking Cancelled", desc: `Refund processed for Booking ${id}.`, time: "Just now", unread: true, type: "booking" },
+            ...ns
+          ]);
+        } catch (error) {
+          console.error("Failed to cancel booking", error);
+        }
       },
       notifications,
       markAllRead: () => setNotifications((ns) => ns.map(n => ({ ...n, unread: false }))),
@@ -172,6 +185,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       sosOpen,
       openSOS: () => setSosOpen(true),
       closeSOS: () => setSosOpen(false),
+      resetVerification,
     }}>
       {children}
     </AppCtx.Provider>

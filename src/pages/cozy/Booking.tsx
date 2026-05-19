@@ -12,7 +12,7 @@ export default function Booking() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const hotel = getHotel(id || "");
-  const { user, addBooking, search, verifyWithDigiLocker, loading } = useApp();
+  const { user, addBooking, search, verifyWithDigiLocker, loading, resetVerification } = useApp();
   
   const [step, setStep] = useState(1);
   const [minor, setMinor] = useState(searchParams.get("minor") === "true");
@@ -92,6 +92,8 @@ export default function Booking() {
       rooms: search.rooms,
       total,
       status: "Upcoming",
+      minor,
+      location: hotel.location
     });
     navigate(`/confirmation/${hotel.id}?bookingId=${bookingId}&amount=${total}`);
   };
@@ -394,9 +396,20 @@ export default function Booking() {
                             <button onClick={() => setStep(3)} className="w-full h-14 rounded-full bg-primary text-primary-foreground font-bold shadow-lg">
                               Continue with Guardian
                             </button>
-                            <button onClick={back} className="w-full h-12 rounded-full border border-border font-bold text-sm">
-                              Go Back
-                            </button>
+                            <div className="grid grid-cols-2 gap-3">
+                              <button onClick={back} className="h-12 rounded-full border border-border font-bold text-sm">
+                                Go Back
+                              </button>
+                              <button 
+                                onClick={() => {
+                                  resetVerification();
+                                  setDigiLockerStatus("idle");
+                                }} 
+                                className="h-12 rounded-full border border-border font-bold text-sm text-muted-foreground"
+                              >
+                                Try another ID
+                              </button>
+                            </div>
                           </div>
                         </div>
                       )}
@@ -428,9 +441,16 @@ export default function Booking() {
                         <SelectDropdown label="RELATIONSHIP WITH MINOR" options={["Father", "Mother", "Brother", "Sister", "Uncle", "Aunt", "Legal Guardian"]} value={formData.guardianRel} onChange={(v) => setFormData({...formData, guardianRel: v})} />
                         <PhoneInput label="GUARDIAN MOBILE NUMBER" value={formData.guardianPhone} onChange={(v) => setFormData({...formData, guardianPhone: v})} />
 
-                        <button onClick={() => setOtpSent(true)} className="w-full h-14 rounded-full bg-primary text-primary-foreground font-bold flex items-center justify-center gap-2 shadow-xl shadow-primary/20 disabled:opacity-50 mt-4">
+                        <button 
+                          disabled={formData.guardianName.trim().length < 3 || !formData.guardianRel || formData.guardianPhone.length !== 10}
+                          onClick={() => setOtpSent(true)} 
+                          className="w-full h-14 rounded-full bg-primary text-primary-foreground font-bold flex items-center justify-center gap-2 shadow-xl shadow-primary/20 disabled:opacity-40 disabled:grayscale mt-4 transition-all"
+                        >
                           Send OTP to Guardian <ChevronRight className="h-4 w-4" />
                         </button>
+                        <p className="text-[10px] text-muted-foreground/60 text-center mt-2 font-medium italic">
+                          * All fields are mandatory for guardian verification
+                        </p>
                       </>
                     ) : (
                       <div className="py-8 text-center space-y-6">

@@ -1,0 +1,96 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // ==========================================
+    // HELPER FUNCTIONS
+    // ==========================================
+    
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // Hardcoded Admin Email for Absolute Security
+    function isAdmin() {
+      return isAuthenticated() && request.auth.token.email == "simplydivyanshk@gmail.com";
+    }
+
+    // Prevents standard users from modifying their own 'role' field
+    function isNotElevatingRole() {
+      // If the request doesn't include the role field, it's fine.
+      // If it does include it, it must match the existing role.
+      return !request.resource.data.keys().hasAny(['role']) 
+          || request.resource.data.role == resource.data.role;
+    }
+    
+    // ==========================================
+    // COLLECTIONS
+    // ==========================================
+
+    // 1. USERS COLLECTION
+    match /users/{userId} {
+      // Public reading allowed so properties/reviews can display host/guest names
+      allow read: if true;
+      
+      // User can create their profile. Role must be 'user' (unless they are admin)
+      allow create: if isOwner(userId) && (
+        request.resource.data.role == 'user' || isAdmin()
+      );
+      
+      // User can update their own profile as long as they don't elevate their role
+      allow update: if (isOwner(userId) && isNotElevatingRole()) || isAdmin();
+      
+      allow delete: if isAdmin();
+    }
+
+    // 2. PROPERTIES COLLECTION
+    match /properties/{propertyId} {
+      // Public can read properties
+      allow read: if true;
+      
+      // Admins have full control over properties
+      allow create, update, delete: if isAdmin();
+    }
+
+    // 3. BOOKINGS COLLECTION
+    match /bookings/{bookingId} {
+      // Users can read their own bookings. Admins read all.
+      allow read: if isAdmin() || (isAuthenticated() && resource.data.guestId == request.auth.uid);
+      
+      // Users can create bookings for themselves
+      allow create: if isAdmin() || (isAuthenticated() && request.resource.data.guestId == request.auth.uid);
+      
+      // Users can modify their own bookings (e.g. cancellation)
+      allow update: if isAdmin() || (isAuthenticated() && resource.data.guestId == request.auth.uid);
+      
+      // Only admins can completely wipe a booking record
+      allow delete: if isAdmin();
+    }
+
+    // 4. REVIEWS COLLECTION
+    match /reviews/{reviewId} {
+      allow read: if true;
+      allow create: if isAuthenticated() && request.resource.data.guestId == request.auth.uid;
+      allow update, delete: if isAdmin() || (isAuthenticated() && resource.data.guestId == request.auth.uid);
+    }
+
+    // 5. WISHLIST COLLECTION
+    match /wishlist/{wishlistId} {
+      allow read: if isAdmin() || (isAuthenticated() && resource.data.userId == request.auth.uid);
+      allow create: if isAdmin() || (isAuthenticated() && request.resource.data.userId == request.auth.uid);
+      allow update, delete: if isAdmin() || (isAuthenticated() && resource.data.userId == request.auth.uid);
+    }
+    
+    // 6. PAYMENTS COLLECTION
+    match /payments/{paymentId} {
+      // Highly secure: Only admins and the user who made the payment can read.
+      allow read: if isAdmin() || (isAuthenticated() && resource.data.userId == request.auth.uid);
+      // ONLY admins (or backend cloud functions) can create/update payments securely.
+      allow write: if isAdmin(); 
+    }
+  }
+}

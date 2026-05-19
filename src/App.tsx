@@ -4,6 +4,8 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AppProvider } from "@/context/AppContext";
+import { AuthProvider } from "@/contexts/AuthContext";
+import { ProtectedRoute } from "@/components/ProtectedRoute";
 import Home from "./pages/cozy/Home";
 import Listings from "./pages/cozy/Listings";
 import HotelDetails from "./pages/cozy/HotelDetails";
@@ -14,6 +16,7 @@ import BookingDetails from "./pages/cozy/BookingDetails";
 import Favourites from "./pages/cozy/Favourites";
 import Profile from "./pages/cozy/Profile";
 import Auth from "./pages/cozy/Auth";
+import GoogleAuth from "./pages/cozy/GoogleAuth";
 import Safety from "./pages/cozy/Safety";
 import Admin from "./pages/cozy/Admin";
 import AdminOverview from "./pages/cozy/admin/Overview";
@@ -29,31 +32,38 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <Sonner />
-      <AppProvider>
-        <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/auth" element={<Auth />} />
-            <Route path="/listings" element={<Listings />} />
-            <Route path="/hotel/:id" element={<HotelDetails />} />
-            <Route path="/booking/:id" element={<Booking />} />
-            <Route path="/confirmation/:id" element={<Confirmation />} />
-            <Route path="/bookings" element={<Bookings />} />
-            <Route path="/bookings/:id" element={<BookingDetails />} />
-            <Route path="/favourites" element={<Favourites />} />
-            <Route path="/favourites" element={<Favourites />} />
-            <Route path="/profile" element={<Profile />} />
-            <Route path="/safety" element={<Safety />} />
-            <Route path="/admin" element={<Admin />}>
-              <Route index element={<AdminOverview />} />
-              <Route path="properties" element={<AdminProperties />} />
-              <Route path="bookings" element={<AdminBookings />} />
-              <Route path="verify" element={<AdminVerify />} />
-            </Route>
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
-      </AppProvider>
+      <BrowserRouter>
+        <AuthProvider>
+          <AppProvider>
+            <Routes>
+              <Route path="/" element={<Home />} />
+              <Route path="/auth" element={<Auth />} />
+              <Route path="/google-auth" element={<GoogleAuth />} />
+              <Route path="/listings" element={<Listings />} />
+              <Route path="/hotel/:id" element={<HotelDetails />} />
+              
+              {/* Protected Routes */}
+              <Route path="/booking/:id" element={<ProtectedRoute><Booking /></ProtectedRoute>} />
+              <Route path="/confirmation/:id" element={<ProtectedRoute><Confirmation /></ProtectedRoute>} />
+              <Route path="/bookings" element={<ProtectedRoute><Bookings /></ProtectedRoute>} />
+              <Route path="/bookings/:id" element={<ProtectedRoute><BookingDetails /></ProtectedRoute>} />
+              <Route path="/favourites" element={<ProtectedRoute><Favourites /></ProtectedRoute>} />
+              <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+              
+              <Route path="/safety" element={<Safety />} />
+              
+              {/* Admin Routes */}
+              <Route path="/admin" element={<ProtectedRoute requireAdmin><Admin /></ProtectedRoute>}>
+                <Route index element={<AdminOverview />} />
+                <Route path="properties" element={<AdminProperties />} />
+                <Route path="bookings" element={<AdminBookings />} />
+                <Route path="verify" element={<AdminVerify />} />
+              </Route>
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </AppProvider>
+        </AuthProvider>
+      </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
 );

@@ -1,0 +1,44 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    
+    // ==========================================
+    // HELPER FUNCTIONS
+    // ==========================================
+    
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isAdmin() {
+      return isAuthenticated() && request.auth.token.email == "simplydivyanshk@gmail.com";
+    }
+    
+    function isValidImage() {
+      return request.resource.size < 5 * 1024 * 1024 // Less than 5MB
+          && request.resource.contentType.matches('image/.*');
+    }
+
+    // ==========================================
+    // ROUTES
+    // ==========================================
+
+    match /{allPaths=**} {
+      allow read: if true;
+    }
+
+    // PROPERTY IMAGES
+    match /properties/images/{imageId} {
+      allow read: if true;
+      // Only admins can upload/delete property images in production
+      allow write: if isAdmin() && (request.method == 'delete' || isValidImage());
+    }
+    
+    // USER PROFILE IMAGES
+    match /users/profiles/{userId}/{imageId} {
+      allow read: if true;
+      allow create, update: if isAuthenticated() && request.auth.uid == userId && isValidImage();
+      allow delete: if isAdmin() || (isAuthenticated() && request.auth.uid == userId);
+    }
+  }
+}
